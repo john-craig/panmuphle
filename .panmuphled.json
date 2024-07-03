@@ -1,0 +1,64 @@
+{
+    "initial_workspaces": [
+        "social",
+        "development"
+    ],
+
+    "screens": [
+        {
+            "name": "HDMI-0",
+            "alias": "RIGHT_MONITOR"
+        },
+        {
+            "name": "DP-0",
+            "alias": "LEFT_MONITOR"
+        }
+    ],
+    "workspaces": [
+        {
+            "name": "social",
+            "default_screen": "LEFT_MONITOR",
+            "windows": [
+                {
+                    "preferred_screen": "RIGHT_MONITOR",
+                    "displayed_default": true,
+                    "applications": [
+                        {
+                            "name": "discord",
+                            "exec": "/usr/bin/discord",
+                            "focused_default": true
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "development",
+            "default_screen": "RIGHT_MONITOR",
+            "windows": [
+                {
+                    "preferred_screen": "LEFT_MONITOR",
+                    "displayed_default": true,
+                    "applications": [
+                        {
+                            "name": "code",
+                            "exec": "/usr/bin/code",
+                            "focused_default": true
+                        }
+                    ]
+                },
+                {
+                    "preferred_screen": "RIGHT_MONITOR",
+                    "displayed_default": true,
+                    "applications": [
+                        {
+                            "name": "nyxt",
+                            "exec": "/usr/bin/nyxt",
+                            "focused_default": false
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

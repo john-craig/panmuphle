@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools >= 61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = [
+    "panmuphled",
+    "panmuphled.display",
+    "panmuphled.server",
+    "panmuphlectl"
+]
+exclude = []
+
+[project]
+name = "panmuphle"
+version = "0.0.0"
+dependencies = [
+
+]
+requires-python = ">=3.8"
+
+[project.scripts]
+panmuphled   = "panmuphled.main:main"
+panmuphlectl = "panmuphlectl.main:main"
