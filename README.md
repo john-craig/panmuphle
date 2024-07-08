@@ -62,3 +62,11 @@ Therefore, the workspace switch needs to take as input the current state of what
 
 **Activating Windows**
 When switching a window, the window should be provided a target screen. It should swap itself with whatever window is currently at that location.
+
+## Functions
+
+## Bugs
+
+- When I open a workspace sometimes it's a new workspace, sometimes it reuses an existing workspace
+- When I open an application there's multiple slide-ins
+- Doesn't seem to be terminating applications properly on workspace close

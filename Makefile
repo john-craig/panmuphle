@@ -1,4 +1,4 @@
-PYTHON = python3.11
+PYTHON = python3.12
 
 build:
 	$(PYTHON) -m build

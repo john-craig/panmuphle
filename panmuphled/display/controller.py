@@ -1,4 +1,5 @@
 import logging
+import json
 
 from panmuphled.display.common import run_command
 from panmuphled.display.workspace import Workspace
@@ -60,18 +61,10 @@ class Controller:
 
         self.file_manager.start()
 
-        for screen in self.screens:
-            logger.info(f"Resetting screen {screen}")
-            rc, stdout = run_command(
-                ["/usr/bin/bspc", "monitor", screen["name"], "--reset-desktops", "0"]
-            )
+        self.screens = self.__match_screen_ids(self.screens)
 
         for workspace in self.workspaces:
             workspace.start()
-
-        # for screen in self.screens:
-        #     logger.info(f"Resetting screen {screen}")
-        #     rc, stdout = run_command(['/usr/bin/bspc', 'desktop', '0', '--remove'])
 
         logger.info("Activating current work space")
         self.current_workspace.activate()
@@ -84,9 +77,8 @@ class Controller:
 
         self.file_manager.stop()
 
-    # Select a workspace
-    def select_workspace(self):
-        pass
+    """
+    """
 
     # Switch to a workspace.
     # Expects a workspace object
@@ -101,14 +93,55 @@ class Controller:
     def get_workspaces(self):
         return self.workspaces
 
+    def get_workspace_templates(self):
+        return self.workspace_templates
+
+    def open_workspace(self, template):
+        ws_name = self.get_next_workspace_name(template["name"])
+
+        self.workspaces.append(
+            Workspace(ws_name, self, template)
+        )
+
+        new_ws = self.workspaces[-1]
+        new_ws.start()
+
+        self.switch_workspace(new_ws)
+
+    def close_workspace(self, workspace):
+        self.workspaces.remove(workspace)
+
+        if self.current_workspace == workspace:
+            self.switch_workspace(self.workspaces[0])
+
+        workspace.stop()
+
+
+    def switch_window(self, next):
+        target_screen_id = next.get_preferred_screen()
+        
+        if not target_screen_id:
+            target_screen_id = next.workspace.get_default_screen()
+        
+        prev = self.current_workspace.get_window_at_screen(target_screen_id)
+
+        next.activate(screen=target_screen_id, prev=prev)
+
+    def get_windows(self):
+        return self.current_workspace.windows
+
+
     """
         Utilities
     """
 
-    def get_screen_name(self, alias):
+    def get_screen_id(self, alias):
         for screen in self.screens:
-            if alias == screen["alias"] or alias == screen["name"]:
-                return screen["name"]
+            if "id" not in screen:
+                continue
+                
+            if alias == screen["alias"] or alias == screen["name"] or alias == screen["id"]:
+                return screen["id"]
 
         return None
 
@@ -116,7 +149,34 @@ class Controller:
         existing = 0
 
         for ws in self.workspaces:
-            if ws.name.split(":")[0] == name:
+            if ws.name.split("#")[0] == name:
                 existing = existing + 1
 
-        return f"{name}:{existing}"
+        return f"{name}#{existing}"
+
+    """
+    """
+
+    def __match_screen_ids(self, screens):
+        rc, stdout = run_command([
+            "/usr/bin/hyprctl",
+            "monitors",
+            "-j"
+        ])
+
+        screens_data = json.loads(stdout)
+
+        for screen in screens:
+            screen_id = None
+
+            for s_data in screens_data:
+                if s_data['name'] == screen['name']:
+                    screen_id = s_data['id']
+                    break
+            
+            if screen_id == None:
+                logger.warning(f"Unable to find ID for screen {screen}")
+            else:
+                screen['id'] = screen_id
+        
+        return screens

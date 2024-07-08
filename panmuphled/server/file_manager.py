@@ -1,6 +1,8 @@
 import logging
 import os
 import shutil
+import signal
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -15,8 +17,8 @@ class FileManager:
         logger.info("Starting file manager")
 
         if os.path.exists(self.state_dir):
-            logger.info("State directory already existed, removing it")
-            shutil.rmtree(self.state_dir)
+            logger.info("State directory already existed, performing clean-up")
+            self.cleanup_state_dir()
 
         logger.info("Creating state directory")
         os.mkdir(self.state_dir)
@@ -42,3 +44,45 @@ class FileManager:
         app_subdir = os.path.join(self.state_dir, f"{win_name}-{app_name}")
 
         shutil.rmtree(app_subdir)
+    
+    def save_application_pid(self, app_subdir, pid):
+        pid_file_path = os.path.join(app_subdir, "pidfile")
+
+        with open(pid_file_path, "w") as pid_file:
+            pid_file.write(str(pid))
+
+    def cleanup_state_dir(self):
+        for subdir in os.listdir(self.state_dir):
+            app_subdir = os.path.join(self.state_dir, subdir)
+            pid_file_path = os.path.join(app_subdir, "pidfile")
+
+            logger.info(f"Cleaning up subdirectory {app_subdir}")
+
+            if os.path.exists(pid_file_path) and os.path.isfile(pid_file_path):
+                logger.info("Found existing pidfile")
+
+                with open(pid_file_path, "r") as pid_file:
+                    app_pid = int(pid_file.read())
+                
+                logger.info(f"Sending kill signal to process {app_pid}")
+
+                try:
+                    parent = psutil.Process(app_pid)
+                except psutil.NoSuchProcess:
+                    parent = None
+                    logger.warn(f"Unable to find process {app_pid}")
+
+                if parent:
+                    for child in parent.children(recursive=True):
+                        try:
+                            child.kill()
+                        except psutil.NoSuchProcess:
+                            logger.warn(f"Failed to find process {child.ppid()} during kill")
+                    
+                    try:
+                        parent.kill()
+                    except psutil.NoSuchProcess:
+                        logger.warn(f"Failed to find process {parent.ppid()} during kill")
+
+        logger.info("Removing old state directory")
+        shutil.rmtree(self.state_dir)
