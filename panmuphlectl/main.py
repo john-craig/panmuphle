@@ -36,12 +36,14 @@ PANMUPHLECTL_ACTIONS = {
     "list-workspaces": "list_workspaces",
     "show-workspace": "show_workspace",
     "open-workspace": "open_workspace",
+    "launch-workspace": "launch_workspace"
     "close-workspace": "close_workspace",
     "switch-window": "switch_window",
     "select-window": "select_window",
     "list-windows": "list_windows",
     "show-window": "show_window",
     "start-application": "start_application",
+    "launch-application": "launch_application",
     "terminate": "terminate",
 }
 
@@ -51,13 +53,23 @@ def main():
     parser.add_argument("--json", help="Print results as raw JSON")
     parser.add_argument("action", choices=PANMUPHLECTL_ACTIONS.keys())
     parser.add_argument("--target", type=int)
+    parser.add_argument("--name", type=str)
+    parser.add_argument("--exec", type=str)
+    parser.add_argument("--workspace", type=str)
+    parser.add_argument("--window", type=str)
 
     args = parser.parse_args()
 
     func = PANMUPHLECTL_ACTIONS[args.action]
-    targ = args.target
 
-    resp = send_command({"command": func, "target": targ})
+    resp = send_command({
+        "command": func, 
+        "target": args.target,
+        "name": args.name,
+        "exec": args.exec,
+        "workspace": args.workspace,
+        "window": args.window
+    })
 
     print_resp(resp)
 

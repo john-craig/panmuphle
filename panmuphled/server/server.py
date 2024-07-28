@@ -2,6 +2,7 @@ import logging
 import signal
 import sys
 import json
+import shutils
 from multiprocessing.connection import Listener
 
 from panmuphled.display.common import run_command
@@ -46,21 +47,7 @@ def select_workspace(msg, ctlr):
     logger.info("Server recieved command to select workspaces")
     rc = RC_OK
 
-    workspaces = ctlr.get_workspaces()
-    ws_table = {}
-
-    for ws in workspaces:
-        ws_table[ws.name] = ws
-
-    rc, sel_ws = Selector.select_from_list(list(ws_table.keys()))
-
-    if rc != RC_OK:
-        logger.warning(f"Selection failed with RC: {rc}")
-        return {"rc": RC_BAD}
-
-    if sel_ws not in ws_table:
-        logger.warning(f"Selected workspace not found: '{sel_ws}'")
-        return {"rc": RC_BAD}
+    next_workspace = Selector.select_workspace(ctlr)
 
     rc = ctlr.switch_workspace(ws_table[sel_ws])
 
@@ -102,8 +89,8 @@ def show_workspace(msg, ctlr):
 
     return { "rc": RC_OK, "workspace": ws_data }
     
-def open_workspace(msg, ctlr):
-    logger.info("Server recieved command to start workspaces")
+def launch_workspace(msg, ctlr):
+    logger.info("Server recieved command to launch a workspace")
     rc = RC_OK
 
     ws_templates = ctlr.get_workspace_templates()
@@ -119,6 +106,31 @@ def open_workspace(msg, ctlr):
         return {"rc": RC_BAD}
 
     rc = ctlr.open_workspace(ws_templates[sel_ws])
+
+    return {"rc": rc}
+
+def open_workspace(msg, ctrl):
+    logger.info("Server recieved command to open a workspace")
+    rc = RC_OK
+
+    if "workspace" not in msg or msg["workspace"] == None:
+        logger.warning(f"No workspace was specified for opening")
+        rc {"rc": RC_BAD}
+
+    new_ws = msg["workspace"]
+
+    ws_templates = ctrl.get_workspace_templates()
+
+    if new_ws not in ws_templates:
+        logger.warning(f"Specified workspace not found: '{new_ws}'")
+        return {"rc": RC_BAD}
+
+    ws_name = None
+
+    if "name" in msg and msg["name"] != None:
+        ws_name = msg["name"]
+
+    ctrl.open_workspace(ws_templates[new_ws], ws_name=ws_name)
 
     return {"rc": rc}
 
@@ -145,7 +157,6 @@ def close_workspace(msg, ctlr):
     rc = ctlr.close_workspace(ws_table[sel_ws])
 
     return {"rc": rc}
-
 
 def switch_window(msg, ctlr):
     logger.info("Server recieved command to switch windows")
@@ -180,23 +191,9 @@ def select_window(msg, ctlr):
     logger.info("Server recieved command to select windows")
     rc = RC_OK
 
-    windows = ctlr.get_windows()
-    wn_table = {}
+    next_window = Selector.select_window()
 
-    for wn in windows:
-        wn_table[wn.name] = wn
-
-    rc, sel_wn = Selector.select_from_list(list(wn_table.keys()))
-
-    if rc != RC_OK:
-        logger.warning(f"Selection failed with RC: {rc}")
-        return {"rc": RC_BAD}
-
-    if sel_wn not in wn_table:
-        logger.warning(f"Selected window not found: '{sel_ws}'")
-        return {"rc": RC_BAD}
-
-    rc = ctlr.switch_window(wn_table[sel_wn])
+    rc = ctlr.switch_window(next_window)
 
     return {"rc": rc}
 
@@ -235,30 +232,40 @@ def show_window(msg, ctlr):
 
     return { "rc": RC_OK, "window": ws_data}
 
-
-
 def start_application(msg, ctlr):
-    logger.info("Server recieved command to select windows")
+    pass
+
+def launch_application(msg, ctlr):
+    logger.info("Server recieved command to launch application")
     rc = RC_OK
 
-    windows = ctlr.get_windows()
-    wn_table = {}
-
-    for wn in windows:
-        wn_table[wn.name] = wn
-
-    stdin_str = "\n".join(list(wn_table.keys()))
-    rc, stdout = run_command(["/usr/bin/rofi", "-show", "drun", "-run-command", '"echo {cmd}"'], input=stdin_str)
-
-    if rc != RC_OK:
-        logger.warning(f"Error with selecting window, return code: {rc}")
-        return {"rc": rc}
-
-    sel_app = stdout.strip("\n")
+    rc, sel_app = Selector.select_application(ctlr)
 
     if rc != RC_OK:
         logger.warning(f"Selection failed with RC: {rc}")
         return {"rc": RC_BAD}
+
+    # Have to find the absolute path of the application
+    # selected by rofi.
+    app_exec = shutils.which(sel_app)
+
+    rc, sel_ws = Selector.select_workspace(ctlr)
+
+    if rc != RC_OK:
+        logger.warning(f"Selection failed with RC: {rc}")
+        return {"rc": RC_BAD}
+    
+    rc, sel_win = Selector.select_window(ctlr, ws_name=sel_ws.name)
+
+    if rc != RC_OK:
+        logger.warning(f"Selection failed with RC: {rc}")
+        return {"rc": RC_BAD}
+    
+    sel_win.launch_application({
+        'exec': app_exec,
+        'name': sel_app,
+        'focused_default': False
+    })
 
     return {"rc": rc}
 
@@ -267,6 +274,7 @@ COMMAND_MAPPINGS = {
     "select_workspace": select_workspace,
     "list_workspaces":  list_workspaces,
     "show_workspace":   show_workspace,
+    "launch_workspace": launch_workspace,
     "open_workspace":   open_workspace,
     "close_workspace":  close_workspace,
 

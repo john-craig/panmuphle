@@ -128,6 +128,12 @@ class Window:
             'applications': [ ap.show() for ap in self.applications ]
         }
 
+    def launch_application(self, app_def):
+        self.applications.append(
+            Application(None, self, app_def)
+        )
+        self.applications[-1].start()
+
     """
     """
 
