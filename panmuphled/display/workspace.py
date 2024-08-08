@@ -190,6 +190,13 @@ class Workspace:
 
         return next_window
 
+    def get_focused_window(self):
+        for wn in self.windows:
+            if wn.is_focused():
+                return wn
+        
+        return None
+
     def __set_transition_direction_vertical(self):
         curveName = "myBezier"
 

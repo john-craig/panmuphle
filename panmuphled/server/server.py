@@ -2,7 +2,7 @@ import logging
 import signal
 import sys
 import json
-import shutils
+import shutil
 from multiprocessing.connection import Listener
 
 from panmuphled.display.common import run_command
@@ -14,19 +14,23 @@ logger = logging.getLogger(__name__)
 RC_OK = 0
 RC_BAD = 1
 
+############################
+# Workspace Control Commands
+############################
+
 def switch_workspace(msg, ctlr):
     logger.info("Server recieved command to switch workspaces")
     rc = RC_OK
 
-    if "target" not in msg:
+    if "index" not in msg:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
-    if type(msg["target"]) != int:
+    if type(msg["index"]) != int:
         logger.warning(f"Recieved message with invalid parameter: {msg}")
         return {"rc": RC_BAD}
 
-    target_num = msg["target"] - 1
+    target_num = msg["index"] - 1
     workspaces = ctlr.get_workspaces()
 
     logger.debug(f"  workspaces: {workspaces}")
@@ -47,9 +51,16 @@ def select_workspace(msg, ctlr):
     logger.info("Server recieved command to select workspaces")
     rc = RC_OK
 
-    next_workspace = Selector.select_workspace(ctlr)
+    rc, next_workspace = Selector.select_workspace(ctlr)
 
-    rc = ctlr.switch_workspace(ws_table[sel_ws])
+    if rc != RC_OK:
+        return {"rc": rc}
+
+    if next_workspace == None:
+        logger.info("No workspace selected")
+        return {"rc": rc}
+
+    rc = ctlr.switch_workspace(next_workspace)
 
     return {"rc": rc}
 
@@ -67,11 +78,11 @@ def show_workspace(msg, ctlr):
     logger.info("Server recieved command to show workspace")
     rc = RC_OK
 
-    if "target" not in msg:
+    if "index" not in msg:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
-    if type(msg["target"]) != int:
+    if type(msg["index"]) != int:
         logger.warning(f"Recieved message with invalid parameter: {msg}")
         return {"rc": RC_BAD}
     
@@ -113,11 +124,11 @@ def open_workspace(msg, ctrl):
     logger.info("Server recieved command to open a workspace")
     rc = RC_OK
 
-    if "workspace" not in msg or msg["workspace"] == None:
+    if "name" not in msg or msg["name"] == None:
         logger.warning(f"No workspace was specified for opening")
-        rc {"rc": RC_BAD}
+        return {"rc": RC_BAD}
 
-    new_ws = msg["workspace"]
+    new_ws = msg["name"]
 
     ws_templates = ctrl.get_workspace_templates()
 
@@ -158,19 +169,23 @@ def close_workspace(msg, ctlr):
 
     return {"rc": rc}
 
+############################
+# Window Control Commands
+############################
+
 def switch_window(msg, ctlr):
     logger.info("Server recieved command to switch windows")
     rc = RC_OK
 
-    if "target" not in msg:
+    if "index" not in msg:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
-    if type(msg["target"]) != int:
+    if type(msg["index"]) != int:
         logger.warning(f"Recieved message with invalid parameter: {msg}")
         return {"rc": RC_BAD}
 
-    target_num = msg["target"] - 1
+    target_num = msg["index"] - 1
     windows = ctlr.get_windows()
 
     logger.debug(f"  windows: {windows}")
@@ -191,7 +206,7 @@ def select_window(msg, ctlr):
     logger.info("Server recieved command to select windows")
     rc = RC_OK
 
-    next_window = Selector.select_window()
+    rc, next_window = Selector.select_window(ctrl)
 
     rc = ctlr.switch_window(next_window)
 
@@ -211,11 +226,11 @@ def show_window(msg, ctlr):
     logger.info("Server recieved command to show window")
     rc = RC_OK
 
-    if "target" not in msg:
+    if "index" not in msg:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
-    if type(msg["target"]) != int:
+    if type(msg["index"]) != int:
         logger.warning(f"Recieved message with invalid parameter: {msg}")
         return {"rc": RC_BAD}
     
@@ -232,8 +247,13 @@ def show_window(msg, ctlr):
 
     return { "rc": RC_OK, "window": ws_data}
 
+################################
+# Application Control Commands
+################################
+
 def start_application(msg, ctlr):
-    pass
+    logger.info("Server recieved command to start application")
+    rc = RC_OK
 
 def launch_application(msg, ctlr):
     logger.info("Server recieved command to launch application")
@@ -247,7 +267,7 @@ def launch_application(msg, ctlr):
 
     # Have to find the absolute path of the application
     # selected by rofi.
-    app_exec = shutils.which(sel_app)
+    app_exec = shutil.which(sel_app)
 
     rc, sel_ws = Selector.select_workspace(ctlr)
 
@@ -269,6 +289,62 @@ def launch_application(msg, ctlr):
 
     return {"rc": rc}
 
+def switch_application(msg, ctrl):
+    logger.info("Server recieved command to switch to application")
+    rc = RC_OK
+
+    if "index" in msg and msg["index"] != None:
+        target_num = msg["index"] - 1
+        applications = ctrl.get_applications()
+
+        if target_num not in range(0,len(applications)):
+            logger.warning("Specified application out of range")
+            return {"rc": RC_BAD}
+        
+        ctrl.switch_application(applications[target_num])
+    elif "pid" in msg and msg["pid"] != None:
+        app_pid = msg["pid"]
+        found_apps = ctrl.find_applications(app_pid=app_pid)
+
+        if len(found_apps) < 1:
+            logger.warning("Unable to locate application being switched to")
+            return {"rc": RC_BAD}
+        
+        ctrl.switch_application(found_apps[0])
+    elif "address" in msg and msg["address"] != None:
+        app_addr = msg["address"]
+        found_apps = ctrl.find_applications(app_addr=app_addr)
+
+        if len(found_apps) < 1:
+            logger.warning("Unable to locate application being switched to")
+            return {"rc": RC_BAD}
+        
+        ctrl.switch_application(found_apps[0])
+    else:
+        logger.warning(f"Recieved malformed message: {msg}")
+        return {"rc": RC_BAD}
+
+    return {"rc": rc}
+    
+def find_applications(msg, ctrl):
+    logger.info("Server recieved command to find application")
+    rc = RC_OK
+
+    if "name" not in msg or "pid" not in msg:
+        logger.warning(f"Recieved malformed message: {msg}")
+        return {"rc": RC_BAD}
+ 
+    app_name = msg["name"] if "name" in msg else None
+    app_pid = msg["pid"] if "pid" in msg else None
+
+    applications = ctrl.find_applications(app_name=app_name, app_pid=app_pid)
+
+    app_results = [ { "name": app.name, "pid": app.process.pid, "exec": app.exec, "window": app.window.name} for app in applications ]
+
+    return {"rc": rc, "applications": app_results}
+
+
+
 COMMAND_MAPPINGS = {
     "switch_workspace": switch_workspace,
     "select_workspace": select_workspace,
@@ -283,7 +359,10 @@ COMMAND_MAPPINGS = {
     "list_windows":  list_windows,
     "show_window":   show_window,
 
-    # "start_application": start_application
+    "start_application": start_application,
+    "launch_application": launch_application,
+    "switch_application": switch_application,
+    "find_applications": find_applications,
 
 }
 

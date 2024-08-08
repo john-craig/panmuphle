@@ -23,6 +23,7 @@ class Selector:
     
     @staticmethod
     def select_workspace(ctlr):
+        rc = RC_OK
         workspaces = ctlr.get_workspaces()
         ws_table = {}
 
@@ -33,16 +34,17 @@ class Selector:
 
         if rc != RC_OK:
             logger.warning(f"Selection failed with RC: {rc}")
-            return {"rc": RC_BAD}
+            return [rc, None]
 
         if sel_ws not in ws_table:
             logger.warning(f"Selected workspace not found: '{sel_ws}'")
-            return {"rc": RC_BAD}
+            return [rc, None]
         
-        return ws_table[sel_ws]
+        return [rc, ws_table[sel_ws]]
 
     @staticmethod
     def select_window(ctlr, ws_name=None, all_win=False):
+        rc = RC_OK
         windows = ctlr.get_windows(ws_name=ws_name, all_win=all_win)
         wn_table = {}
 
@@ -53,13 +55,13 @@ class Selector:
 
         if rc != RC_OK:
             logger.warning(f"Selection failed with RC: {rc}")
-            return {"rc": RC_BAD}
+            return [rc, None]
 
         if sel_wn not in wn_table:
             logger.warning(f"Selected window not found: '{sel_ws}'")
-            return {"rc": RC_BAD}
+            return [rc, None]
         
-        return rc, wn_table[sel_wn]
+        return [rc, wn_table[sel_wn]]
     
     @staticmethod
     def select_application():

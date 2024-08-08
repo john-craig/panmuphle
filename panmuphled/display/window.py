@@ -137,6 +137,9 @@ class Window:
     """
     """
 
+    def is_focused(self):
+        return self.window_id == self.__get_focused_window_id()
+
     def is_displayed(self):
         active_windows = self.__get_active_window_ids()
 

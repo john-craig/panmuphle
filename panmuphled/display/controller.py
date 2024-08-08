@@ -33,6 +33,10 @@ class Controller:
 
         self.current_workspace = self.workspaces[0]
 
+    ##################################
+    # Controller Functions
+    ##################################
+
     @staticmethod
     def validate(cfg):
         if "initial_workspaces" not in cfg:
@@ -77,11 +81,11 @@ class Controller:
 
         self.file_manager.stop()
 
-    """
-    """
+    ##################################
+    # Workspace Functions
+    ##################################
 
     # Switch to a workspace.
-    # Expects a workspace object
     def switch_workspace(self, next):
         prev = self.current_workspace
         logger.info(f"Switching from workspace {prev.name} to workspace {next.name}")
@@ -117,6 +121,9 @@ class Controller:
 
         workspace.stop()
 
+    ##################################
+    # Window Functions
+    ##################################
 
     def switch_window(self, next):
         target_screen_id = next.get_preferred_screen()
@@ -140,6 +147,42 @@ class Controller:
         
         return win_list
 
+    ##################################
+    # Application Functions
+    ##################################
+
+    def switch_application(self, next):
+        self.switch_window(next.window)
+        next.activate(force=True)
+
+    def get_applications(self, wn_name=None, all_apps=False):
+        app_list = []
+
+        if not wn_name and not all_apps:
+            cur_win = self.current_workspace.get_focused_window()
+            
+            if cur_win:
+                app_list = cur_win.applications
+        else:
+            win_list = self.get_windows(all_win=True)
+
+            for wn in win_list:
+                if wn.name == wn_name or all_apps:
+                    app_list = app_list + wn.applications
+        
+        return app_list
+    
+    def find_applications(self, app_name=None, app_pid=None, app_addr=None):
+        app_list = self.get_applications(all_apps=True)
+
+        app_list = [
+            app for app in app_list if
+                (app.name == app_name and app_name is not None) or
+                (app.process.pid == app_pid and app_pid is not None) or
+                (app.client_id == app_addr and app_addr is not None)
+        ]
+
+        return app_list
 
     """
         Utilities

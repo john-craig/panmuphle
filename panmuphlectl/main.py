@@ -1,4 +1,5 @@
 import argparse
+import json
 from multiprocessing.connection import Client
 
 PANMUPHLE_PORT = 7761
@@ -23,7 +24,7 @@ def send_command(cmd):
     return resp
 
 def print_resp(resp):
-    print(resp)
+    print(json.dumps(resp))
 
 """
 """
@@ -36,7 +37,7 @@ PANMUPHLECTL_ACTIONS = {
     "list-workspaces": "list_workspaces",
     "show-workspace": "show_workspace",
     "open-workspace": "open_workspace",
-    "launch-workspace": "launch_workspace"
+    "launch-workspace": "launch_workspace",
     "close-workspace": "close_workspace",
     "switch-window": "switch_window",
     "select-window": "select_window",
@@ -44,19 +45,20 @@ PANMUPHLECTL_ACTIONS = {
     "show-window": "show_window",
     "start-application": "start_application",
     "launch-application": "launch_application",
+    "find-applications": "find_applications",
+    "switch-application": "switch_application",
     "terminate": "terminate",
 }
 
 
 def main():
     parser = argparse.ArgumentParser(description="Panmuphle Control")
-    parser.add_argument("--json", help="Print results as raw JSON")
     parser.add_argument("action", choices=PANMUPHLECTL_ACTIONS.keys())
-    parser.add_argument("--target", type=int)
+    parser.add_argument("--index", type=int)
     parser.add_argument("--name", type=str)
     parser.add_argument("--exec", type=str)
-    parser.add_argument("--workspace", type=str)
-    parser.add_argument("--window", type=str)
+    parser.add_argument("--pid", type=int)
+    parser.add_argument("--addr", type=str)
 
     args = parser.parse_args()
 
@@ -64,11 +66,11 @@ def main():
 
     resp = send_command({
         "command": func, 
-        "target": args.target,
+        "index": args.index,
         "name": args.name,
         "exec": args.exec,
-        "workspace": args.workspace,
-        "window": args.window
+        "pid": args.pid,
+        "address": args.addr
     })
 
     print_resp(resp)

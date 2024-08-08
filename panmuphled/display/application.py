@@ -34,6 +34,14 @@ class Application:
     def start(self):
         logger.info(f"Starting application {self.name}")
         rc = 0
+        
+        # Disable initial focus
+        rc, stdout = run_command([
+            "/usr/bin/hyprctl",
+            "keyword",
+            "windowrulev2",
+            "'noinitialfocus,class:^(.*)$'"
+        ])
 
         clients_before = self.__get_application_ids()
 
@@ -69,6 +77,14 @@ class Application:
             if self.process.returncode != None:
                 logger.warning(f"Application {self.name} terminated while waiting for window to open")
                 return self.process.returncode
+
+        # Re-enable initial focus
+        rc = run_command([
+            "/usr/bin/hyprctl",
+            "keyword",
+            "windowrulev2",
+            "'unset,class:^(.*)$'"
+        ])
 
         return rc
 
@@ -106,9 +122,9 @@ class Application:
 
         return rc
 
-    def activate(self):
+    def activate(self, force=False):
         logger.info(f"Activating application {self.name}")
-        if self.focused_default:
+        if self.focused_default or force:
             logger.debug(f"Giving focus to default focused application {self.name}")
             rc = self.__focus_application(self.client_id)
 
@@ -120,7 +136,7 @@ class Application:
             'name': self.name,
             'exec': self.exec,
             'focused_default': self.focused_default,
-            'process_id': self.process.pid if self.process else None,
+            'pid': self.process.pid if self.process else None,
             'client_id': self.client_id
         }
 

@@ -1,7 +1,7 @@
 PYTHON = python3.12
 
 build:
-	$(PYTHON) -m build
+	$(PYTHON) -m build -n
 
 install: build
-	$(PYTHON) -m pip install --user --break-system-packages --force-reinstall dist/panmuphle-*-py3-none-any.whl
+	$(PYTHON) -m pip install --user --force-reinstall --no-deps --break-system-packages dist/panmuphle-*-py3-none-any.whl
