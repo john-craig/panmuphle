@@ -19,10 +19,16 @@ def main():
         help="Path to configuration file",
         default="~/.panmuphle.json",
     )
+    parser.add_argument(
+        "--log-file",
+        type=str,
+        help="Path to log file",
+        default="/tmp/panmuphled.log"
+    )
 
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG, filename=args.log_file)
 
     logger.info(f"Opening configuration file {args.config}")
     with open(args.config) as conf_file:
