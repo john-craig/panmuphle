@@ -120,7 +120,7 @@ def launch_workspace(msg, ctlr):
 
     return {"rc": rc}
 
-def open_workspace(msg, ctrl):
+def open_workspace(msg, ctlr):
     logger.info("Server recieved command to open a workspace")
     rc = RC_OK
 
@@ -130,7 +130,7 @@ def open_workspace(msg, ctrl):
 
     new_ws = msg["name"]
 
-    ws_templates = ctrl.get_workspace_templates()
+    ws_templates = ctlr.get_workspace_templates()
 
     if new_ws not in ws_templates:
         logger.warning(f"Specified workspace not found: '{new_ws}'")
@@ -141,7 +141,7 @@ def open_workspace(msg, ctrl):
     if "name" in msg and msg["name"] != None:
         ws_name = msg["name"]
 
-    ctrl.open_workspace(ws_templates[new_ws], ws_name=ws_name)
+    ctlr.open_workspace(ws_templates[new_ws], ws_name=ws_name)
 
     return {"rc": rc}
 
@@ -206,7 +206,7 @@ def select_window(msg, ctlr):
     logger.info("Server recieved command to select windows")
     rc = RC_OK
 
-    rc, next_window = Selector.select_window(ctrl)
+    rc, next_window = Selector.select_window(ctlr)
 
     rc = ctlr.switch_window(next_window)
 
@@ -289,44 +289,44 @@ def launch_application(msg, ctlr):
 
     return {"rc": rc}
 
-def switch_application(msg, ctrl):
+def switch_application(msg, ctlr):
     logger.info("Server recieved command to switch to application")
     rc = RC_OK
 
     if "index" in msg and msg["index"] != None:
         target_num = msg["index"] - 1
-        applications = ctrl.get_applications()
+        applications = ctlr.get_applications()
 
         if target_num not in range(0,len(applications)):
             logger.warning("Specified application out of range")
             return {"rc": RC_BAD}
         
-        ctrl.switch_application(applications[target_num])
+        ctlr.switch_application(applications[target_num])
     elif "pid" in msg and msg["pid"] != None:
         app_pid = msg["pid"]
-        found_apps = ctrl.find_applications(app_pid=app_pid)
+        found_apps = ctlr.find_applications(app_pid=app_pid)
 
         if len(found_apps) < 1:
             logger.warning("Unable to locate application being switched to")
             return {"rc": RC_BAD}
         
-        ctrl.switch_application(found_apps[0])
+        ctlr.switch_application(found_apps[0])
     elif "address" in msg and msg["address"] != None:
         app_addr = msg["address"]
-        found_apps = ctrl.find_applications(app_addr=app_addr)
+        found_apps = ctlr.find_applications(app_addr=app_addr)
 
         if len(found_apps) < 1:
             logger.warning("Unable to locate application being switched to")
             return {"rc": RC_BAD}
         
-        ctrl.switch_application(found_apps[0])
+        ctlr.switch_application(found_apps[0])
     else:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
     return {"rc": rc}
     
-def find_applications(msg, ctrl):
+def find_applications(msg, ctlr):
     logger.info("Server recieved command to find application")
     rc = RC_OK
 
@@ -337,7 +337,7 @@ def find_applications(msg, ctrl):
     app_name = msg["name"] if "name" in msg else None
     app_pid = msg["pid"] if "pid" in msg else None
 
-    applications = ctrl.find_applications(app_name=app_name, app_pid=app_pid)
+    applications = ctlr.find_applications(app_name=app_name, app_pid=app_pid)
 
     app_results = [ { "name": app.name, "pid": app.process.pid, "exec": app.exec, "window": app.window.name} for app in applications ]
 
