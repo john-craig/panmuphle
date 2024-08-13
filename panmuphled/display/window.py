@@ -89,11 +89,11 @@ class Window:
 
         self.__close_window()
 
-    def activate(self, screen=None, prev=None):
+    def activate(self, screen_id=None, prev=None):
         logger.info(f"Activating window {self.name}")
-        if not screen:
+        if screen_id == None:
             logger.debug(f"No screen specified when activating window {self.name}")
-            if not prev:
+            if prev == None:
                 logger.debug(
                     f"No previous window specified when activating window {self.name}"
                 )
@@ -107,9 +107,9 @@ class Window:
                 rc = self.__activate_window(self.window_id)
         else:
             logger.debug(
-                f"Screen {screen["id"]} was specified when activating window {self.name}"
+                f"Screen {screen_id} was specified when activating window {self.name}"
             )
-            rc = self.__move_window_to_screen(self.window_id, screen["id"])
+            rc = self.__move_window_to_screen(self.window_id, screen_id)
 
             rc = self.__activate_window(self.window_id)
 

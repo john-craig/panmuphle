@@ -121,7 +121,7 @@ class Workspace:
                 f"Next window for screen {screen_id} is {next_window.name if next_window else None}"
             )
 
-            if not next_window:
+            if next_window == None:
                 # Options here:
                 #   1) round-robin other windows
                 #   2) clear screen
@@ -137,7 +137,8 @@ class Workspace:
                 f"Previous window for screen {screen_id} was {prev_window.name if prev_window else None}"
             )
 
-            next_window.activate(prev=prev_window, screen=screen)
+            logger.debug(f"Activating window {next_window.name if next_window else None} on screen {screen_id}")
+            next_window.activate(prev=prev_window, screen_id=screen_id)
         
         # Set transition direction to horizontal
         self.__set_transition_direction_horizontal()
@@ -185,7 +186,7 @@ class Workspace:
                 else:
                     next_window = window
 
-        if not next_window:
+        if next_window == None:
             pass  # TODO: put an empty window there
 
         return next_window

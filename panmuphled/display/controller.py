@@ -101,7 +101,7 @@ class Controller:
         return self.workspace_templates
 
     def open_workspace(self, template, ws_name=None):
-        if not ws_name:
+        if ws_name == None:
             ws_name = self.get_next_workspace_name(template["name"])
 
         self.workspaces.append(
@@ -128,12 +128,12 @@ class Controller:
     def switch_window(self, next):
         target_screen_id = next.get_preferred_screen()
         
-        if not target_screen_id:
+        if target_screen_id == None:
             target_screen_id = next.workspace.get_default_screen()
         
         prev = self.current_workspace.get_window_at_screen(target_screen_id)
 
-        next.activate(screen=target_screen_id, prev=prev)
+        next.activate(screen_id=target_screen_id, prev=prev)
 
     def get_windows(self, ws_name=None, all_win=False):
         win_list = []
