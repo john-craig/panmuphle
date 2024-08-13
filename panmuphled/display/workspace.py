@@ -137,7 +137,7 @@ class Workspace:
                 f"Previous window for screen {screen_id} was {prev_window.name if prev_window else None}"
             )
 
-            next_window.activate(prev=prev_window)
+            next_window.activate(prev=prev_window, screen=screen)
         
         # Set transition direction to horizontal
         self.__set_transition_direction_horizontal()

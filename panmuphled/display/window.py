@@ -107,9 +107,9 @@ class Window:
                 rc = self.__activate_window(self.window_id)
         else:
             logger.debug(
-                f"Screen {screen} was specified when activating window {self.name}"
+                f"Screen {screen["id"]} was specified when activating window {self.name}"
             )
-            rc = self.__move_window_to_screen(self.window_id, screen)
+            rc = self.__move_window_to_screen(self.window_id, screen["id"])
 
             rc = self.__activate_window(self.window_id)
 
