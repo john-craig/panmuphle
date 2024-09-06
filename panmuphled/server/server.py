@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 RC_OK = 0
 RC_BAD = 1
 
+VERTICAL_DIRECTIONS = [ "UP", "DOWN"]
+HORIZONTAL_DIRECTION = ["LEFT", "RIGHT"]
+
 ############################
 # Workspace Control Commands
 ############################
@@ -22,24 +25,34 @@ def switch_workspace(msg, ctlr):
     logger.info("Server recieved command to switch workspaces")
     rc = RC_OK
 
-    if "index" not in msg:
+    if "index" not in msg and "direction" not in msg:
         logger.warning(f"Recieved malformed message: {msg}")
         return {"rc": RC_BAD}
 
-    if type(msg["index"]) != int:
-        logger.warning(f"Recieved message with invalid parameter: {msg}")
+    if "index" in msg and (type(msg["index"]) != int and msg["index"] != None):
+        logger.warning(f"Recieved message with invalid index parameter: {msg}")
         return {"rc": RC_BAD}
 
-    target_num = msg["index"] - 1
+    if "direction" in msg and (msg["direction"] != None and (type(msg["direction"]) != str and msg["direction"] not in VERTICAL_DIRECTIONS)):
+        logger.warning(f"Recieved message with invalid direction parameter: {msg}")
+        return {"rc": RC_BAD}
+
     workspaces = ctlr.get_workspaces()
 
     logger.debug(f"  workspaces: {workspaces}")
 
-    if len(workspaces) <= target_num:
-        logger.warning(
-            f"Recieved request to switch to workspace which doesn't exist. Target workspace: {target_num}"
-        )
-        return {"rc": RC_BAD}
+    if "index" in msg and msg["index"] != None:
+        target_num = msg["index"] - 1
+        if len(workspaces) <= target_num:
+            logger.warning(
+                f"Recieved request to switch to workspace which doesn't exist. Target workspace: {target_num}"
+            )
+            return {"rc": RC_BAD}
+    else:
+        diff_idx = -1 if msg["direction"] == VERTICAL_DIRECTIONS[0] else 1
+
+        cur_idx = workspaces.index(ctlr.current_workspace)
+        target_num = cur_idx + diff_idx # Wrapping is okay
 
     next_workspace = workspaces[target_num]
 
@@ -208,6 +221,10 @@ def select_window(msg, ctlr):
 
     rc, next_window = Selector.select_window(ctlr)
 
+    if rc != RC_OK:
+        logger.warning("Failed to select window")
+        return {"rc": RC_OK}
+
     rc = ctlr.switch_window(next_window)
 
     return {"rc": rc}
@@ -246,6 +263,41 @@ def show_window(msg, ctlr):
     ws_data = ws.show()
 
     return { "rc": RC_OK, "window": ws_data}
+
+# def move_window(msg, ctrl):
+#     logger.info("Server recieved command to swap windows")
+#     rc = RC_OK
+
+#     if "screen" not in msg:
+#         logger.warning(f"Received malformed message: {msg}")
+#         return {"rc": RC_BAD}
+    
+#     screen_id = ctrl.get_screen_id(msg["screen"])
+
+#     if screen_id == None:
+#         logger.warning(f"Failed to located screen {msg["screen"]}")
+#         return {"rc": RC_BAD}
+
+#     # If the index for the window being swapped wasn't specified,
+#     # swap the current window by default
+#     if "index" not in msg or msg["index"] == None:
+#         targ_win = ctrl.current_workspace.get_focused_window()
+#     else:
+#         if type(msg["index"]) != int:
+#             logger.warning(f"Recieved message with invalid parameter: {msg}")
+#             return {"rc": RC_BAD}
+        
+#         win_idx = msg["index"]
+
+#         if win_idx >= len(ctrl.current_workspace.windows):
+#             logger.warning(f"Unable to locate window with index: {msg}")
+#             return {"rc": RC_BAD}
+
+#         targ_win = ctrl.current_workspace.windows[win_idx]
+
+#     targ_win.activate(screen_id=screen_id)
+
+#     return {"rc": rc}
 
 ################################
 # Application Control Commands

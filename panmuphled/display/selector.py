@@ -11,7 +11,7 @@ class Selector:
     @staticmethod
     def select_from_list(lst):
         stdin_str = "\n".join(lst)
-        rc, stdout = run_command(["/usr/bin/rofi", "-dmenu"], input=stdin_str)
+        rc, stdout = run_command(["/usr/bin/rofi", "-p", ">>>", "-dmenu"], input=stdin_str)
 
         if rc != RC_OK:
             logger.warning(f"Error with selecting from list, return code: {rc}")
@@ -65,7 +65,7 @@ class Selector:
     
     @staticmethod
     def select_application():
-        rc, stdout = run_command(["/usr/bin/rofi", "-show", "drun", "-run-command", '"echo {cmd}"'])
+        rc, stdout = run_command(["/usr/bin/rofi", "-p", ">>>", "-show", "drun", "-run-command", '"echo {cmd}"'])
 
         if rc != RC_OK:
             logger.warning(f"Error with selecting application, return code: {rc}")
@@ -84,6 +84,7 @@ class Selector:
         #  -l overrides the number of lines to 0, which makes the text box look like just an input
         #   field and basically nothing else
         rc, stdout = run_command(["/usr/bin/rofi", 
+            "-p", ">>>",
             "-dmenu",
             "-kb-accept-custom", "'Return'", 
             "-kb-accept-entry", "'Ctrl+Return'",

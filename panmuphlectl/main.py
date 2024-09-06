@@ -43,6 +43,7 @@ PANMUPHLECTL_ACTIONS = {
     "select-window": "select_window",
     "list-windows": "list_windows",
     "show-window": "show_window",
+    "swap-window": "swap_window",
     "start-application": "start_application",
     "launch-application": "launch_application",
     "find-applications": "find_applications",
@@ -55,6 +56,8 @@ def main():
     parser = argparse.ArgumentParser(description="Panmuphle Control")
     parser.add_argument("action", choices=PANMUPHLECTL_ACTIONS.keys())
     parser.add_argument("--index", type=int)
+    parser.add_argument("--screen", type=str)
+    parser.add_argument("--direction", type=str)
     parser.add_argument("--name", type=str)
     parser.add_argument("--exec", type=str)
     parser.add_argument("--pid", type=int)
@@ -70,7 +73,9 @@ def main():
         "name": args.name,
         "exec": args.exec,
         "pid": args.pid,
-        "address": args.addr
+        "address": args.addr,
+        "screen": args.screen,
+        "direction": args.direction
     })
 
     print_resp(resp)
