@@ -10,26 +10,33 @@ logger = logging.getLogger(__name__)
 
 class Controller:
     def __init__(self, config_path):
+        self.config_path = config_path
+
         valid_config = self.reload_config(config_path)
 
         if not valid_config:
             logger.error("Failed to validate configuration file on startup")
             sys.exit(1)
 
-        self.file_manager = FileManager(config_path, self.reload_config)
+        self.restored = False
+        self.file_manager = FileManager(self)
 
-        # Create a workspace instance for each workspace in the inital
-        # workspace list
         self.workspaces = []
 
-        for ws_name in self.config["initial_workspaces"]:
-            inst_ws_name = self.get_next_workspace_name(ws_name)
+        saved_state = self.file_manager.load_state()
 
-            self.workspaces.append(
-                Workspace(inst_ws_name, self, self.workspace_templates[ws_name])
-            )
+        if saved_state is None:
+            # Create a workspace instance for each workspace in the inital workspace list
+            for ws_name in self.config["initial_workspaces"]:
+                inst_ws_name = self.get_next_workspace_name(ws_name)
 
-        self.current_workspace = self.workspaces[0]
+                self.workspaces.append(
+                    Workspace(inst_ws_name, self, self.workspace_templates[ws_name])
+                )
+
+            self.current_workspace = self.workspaces[0]
+        else:
+            self.restore(saved_state)
 
     @staticmethod
     def validate(cfg):
@@ -87,10 +94,11 @@ class Controller:
     def start(self):
         logger.info("Starting controller")
 
-        self.file_manager.start()
-        
-        for workspace in self.workspaces:
-            workspace.start()
+        if self.restored == False:
+            self.file_manager.start()
+            
+            for workspace in self.workspaces:
+                workspace.start()
 
         logger.info("Activating current work space")
         self.current_workspace.activate()
@@ -102,6 +110,32 @@ class Controller:
             workspace.stop()
 
         self.file_manager.stop()
+
+    def restart(self):
+        logger.info("Restarting Controller")
+
+        self.file_manager.save_state()
+        self.file_manager.stop()
+
+    # Restore from a saved state
+    def restore(self, saved_state):
+        logger.info("Restoring controller")
+        self.restored = True
+
+        # Create workspaces
+        self.workspaces = [ Workspace(ws['name'], self, ws)  for ws in saved_state['workspaces']]
+
+        for ws in self.workspaces:
+            ws.restore()
+
+            if ws.name == saved_state['current_workspace']:
+                self.current_workspace = ws
+
+    def show(self):
+        return {
+            'current_workspace': self.current_workspace.name,
+            'workspaces': [ ws.show() for ws in self.workspaces ]
+        }
 
     ##################################
     # Workspace Functions

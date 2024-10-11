@@ -4,6 +4,7 @@ import shutil
 import signal
 import psutil
 import time 
+import json
 
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
@@ -14,12 +15,15 @@ DEFAULT_STATE_PATH = "/tmp/panmuphled"
 
 
 class FileManager:
-    def __init__(self, config_path, config_change_callback):
+    def __init__(self, controller):
         self.state_dir = DEFAULT_STATE_PATH
 
-        self.config_path = config_path
-        self.config_change_callback = config_change_callback
+        self.controller = controller
 
+        event_handler = ConfigChangeHandler(controller.config_path, controller.reload_config)
+        self.observer = Observer()
+        self.observer.schedule(event_handler, path=controller.config_path, recursive=False)
+        
     def start(self):
         logger.info("Starting file manager")
 
@@ -31,19 +35,39 @@ class FileManager:
         os.mkdir(self.state_dir)
 
         logger.info("Starting configuration file watcher")
-        self.watch_configuration_file()
-
+        self.observer.start()
 
     def stop(self):
         logger.info("Stopping file manager")
         self.observer.stop()
 
-    def watch_configuration_file(self):
-        event_handler = ConfigChangeHandler(self.config_path, self.config_change_callback)
-        self.observer = Observer()
-        self.observer.schedule(event_handler, path=self.config_path, recursive=False)
-        self.observer.start()
+    def save_state(self):
+        logger.info("Saving current state")
 
+        controller_state = self.controller.show()
+
+        logger.debug(controller_state)
+
+        with open(os.path.join(self.state_dir, "controller.json"), "w") as state_file:
+            state_file.write(json.dumps(controller_state))
+
+    def load_state(self):
+        logger.info("Loading saved state")
+
+        controller_state = None
+        state_path = os.path.join(self.state_dir, "controller.json")
+
+        if os.path.exists(state_path):
+            with open(state_path, "r") as state_file:
+                controller_state = json.loads(state_file.read())
+        
+        logger.debug(controller_state)
+
+        return controller_state
+
+    ##########################################################
+    # Process ID Management Functions
+    ##########################################################
     def create_application_subdir(self, win_name, app_name):
         app_subdir = os.path.join(self.state_dir, f"{win_name}-{app_name}")
 

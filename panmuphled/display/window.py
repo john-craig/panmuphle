@@ -18,7 +18,7 @@ class Window:
 
         self.workspace = workspace
 
-        self.window_id = None
+        self.window_id = win_def["window_id"] if "window_id" in win_def else None
 
         self.applications = [
             Application(None, self, app_def) for app_def in win_def["applications"]
@@ -89,6 +89,17 @@ class Window:
 
         self.__close_window()
 
+    def restore(self):
+        logger.info(f"Restoring Window {self.name}")
+
+        if self.preferred_screen_alias:
+            self.preferred_screen_id = self.workspace.controller.get_screen_id(self.preferred_screen_alias)
+        else:
+            self.preferred_screen_id = None
+
+        for app in self.applications:
+            app.restore()
+
     def activate(self, screen_id=None, prev=None):
         logger.info(f"Activating window {self.name}")
         if screen_id == None:
@@ -122,7 +133,7 @@ class Window:
     def show(self):
         return {
             'name': self.name,
-            'preferred_screen_alias': self.preferred_screen_alias,
+            'preferred_screen': self.preferred_screen_alias,
             'displayed_default': self.displayed_default,
             'window_id': self.window_id,
             'applications': [ ap.show() for ap in self.applications ]

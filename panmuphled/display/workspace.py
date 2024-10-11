@@ -103,6 +103,17 @@ class Workspace:
         return rc
 
     """
+        Restore this workspace
+    """
+    def restore(self):
+        logger.info(f"Restoring Workspace {self.name}")
+
+        for window in self.windows:
+            rc = window.restore()
+
+        return rc
+
+    """
         Make each window in this workspace
         active
     """
@@ -157,7 +168,7 @@ class Workspace:
     def show(self):
         return {
             'name': self.name,
-            'default_screen_alias': self.default_screen_alias,
+            'default_screen': self.default_screen_alias,
             'windows': [ wn.show() for wn in self.windows ]
         }
 

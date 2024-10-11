@@ -48,6 +48,7 @@ PANMUPHLECTL_ACTIONS = {
     "launch-application": "launch_application",
     "find-applications": "find_applications",
     "switch-application": "switch_application",
+    "restart": "restart",
     "terminate": "terminate",
 }
 

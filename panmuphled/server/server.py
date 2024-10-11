@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 RC_OK = 0
 RC_BAD = 1
+RC_RESTART = 2
 
 VERTICAL_DIRECTIONS = [ "UP", "DOWN"]
 HORIZONTAL_DIRECTION = ["LEFT", "RIGHT"]
@@ -415,7 +416,6 @@ COMMAND_MAPPINGS = {
     "launch_application": launch_application,
     "switch_application": switch_application,
     "find_applications": find_applications,
-
 }
 
 
@@ -474,7 +474,13 @@ class Server:
                 self.conn.send({"rc": 0})
 
                 return self.stop()
+            
+            if msg["command"] == "restart":
+                logger.info("Recieved restart command")
+                self.conn.send({"rc": 0})
 
+                return self.restart()
+            
             if msg["command"] not in COMMAND_MAPPINGS:
                 logger.warning(f"Unknown command {msg['command']}")
                 self.conn.send({"rc": 1})
@@ -497,3 +503,16 @@ class Server:
 
         self.listener.close()
         self.controller.stop()
+
+        return RC_OK
+
+    def restart(self):
+        logger.info("restarting binary")
+
+        if self.conn:
+            self.conn.close()
+        
+        self.listener.close()
+        self.controller.restart()
+
+        return RC_RESTART

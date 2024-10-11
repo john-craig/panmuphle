@@ -22,8 +22,8 @@ class Application:
 
         self.window = window
 
-        self.process = None
-        self.client_id = None
+        self.process = None if 'pid' not in app_def else self.__get_process(app_def['pid'])
+        self.client_id = None if 'client_id' not in app_def else app_def['client_id']
 
         self.focused_default = app_def["focused_default"]
 
@@ -121,6 +121,9 @@ class Application:
         self.process = None
 
         return rc
+
+    def restore(self):
+        pass
 
     def activate(self, force=False):
         logger.info(f"Activating application {self.name}")
@@ -251,7 +254,7 @@ class Application:
             pass # TODO: handle error
         
         return rc
-    
+
     def __focus_application(self, client_id):
         rc, stdout = run_command([
             "/usr/bin/hyprctl",
@@ -277,3 +280,16 @@ class Application:
             pass # TODO: handle error
         
         return rc
+    
+    def __get_process(self, pid):
+        logger.debug(f"Attempting to recover process with PID {pid}")
+        process = None
+
+        try:
+            process = psutil.Process(pid)
+        except psutil.NoSuchProcess:
+            logger.warning(f'No process with PID {pid} exists.')
+        except psutil.AccessDenied:
+            logger.warning(f'Access denied to process with PID {pid}.')
+        
+        return process

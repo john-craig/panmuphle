@@ -1,12 +1,10 @@
 import argparse
 import json
 import logging
+import sys
+import subprocess
 
-from panmuphled.server.server import Server
-
-LEFT_MONITOR = "HDMI-0"
-
-RIGHT_MONITOR = "DP-0"
+from panmuphled.server.server import Server, RC_OK, RC_RESTART
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +30,12 @@ def main():
 
     server = Server(args.config)
 
-    server.start()
+    rc = server.start()
+
+    if rc == RC_RESTART:
+        restarted_process = subprocess.Popen([sys.executable] + sys.argv)
+
+        restarted_process.wait()
 
 
 if __name__ == "__main__":
