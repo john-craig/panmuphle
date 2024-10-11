@@ -420,15 +420,9 @@ COMMAND_MAPPINGS = {
 
 
 class Server:
-    def __init__(self, cfg):
-        logger.info(f"Validating configuration")
-        valid_config = Controller.validate(cfg)
-
-        if not valid_config:
-            exit(1)
-
+    def __init__(self, config_path):
         logger.info(f"Creating controller")
-        self.controller = Controller(cfg)
+        self.controller = Controller(config_path)
 
         self.port = 7761
         self.host = "localhost"

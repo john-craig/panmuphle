@@ -30,11 +30,7 @@ def main():
 
     logging.basicConfig(level=logging.DEBUG, filename=args.log_file)
 
-    logger.info(f"Opening configuration file {args.config}")
-    with open(args.config) as conf_file:
-        conf = json.load(conf_file)
-
-    server = Server(conf)
+    server = Server(args.config)
 
     server.start()
 

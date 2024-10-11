@@ -9,22 +9,20 @@ logger = logging.getLogger(__name__)
 
 
 class Controller:
-    def __init__(self, cfg):
-        self.file_manager = FileManager()
+    def __init__(self, config_path):
+        valid_config = self.reload_config(config_path)
 
-        self.screens = cfg["screens"]
+        if not valid_config:
+            logger.error("Failed to validate configuration file on startup")
+            sys.exit(1)
 
-        self.workspace_templates = {}
-
-        # Create a mapping of the templates
-        for ws_def in cfg["workspaces"]:
-            self.workspace_templates[ws_def["name"]] = ws_def
+        self.file_manager = FileManager(config_path, self.reload_config)
 
         # Create a workspace instance for each workspace in the inital
         # workspace list
         self.workspaces = []
 
-        for ws_name in cfg["initial_workspaces"]:
+        for ws_name in self.config["initial_workspaces"]:
             inst_ws_name = self.get_next_workspace_name(ws_name)
 
             self.workspaces.append(
@@ -32,10 +30,6 @@ class Controller:
             )
 
         self.current_workspace = self.workspaces[0]
-
-    ##################################
-    # Controller Functions
-    ##################################
 
     @staticmethod
     def validate(cfg):
@@ -60,13 +54,41 @@ class Controller:
 
         return True
 
+    def reload_config(self, config_path):
+        logger.info(f"Opening configuration file {config_path}")
+
+        with open(config_path) as conf_file:
+            config = json.load(conf_file)
+            
+        logger.info(f"Validating configuration")
+        valid_config = Controller.validate(config)
+
+        if not valid_config:
+            logger.warning("Failed to validate configuration file")
+            return False
+
+        self.config = config
+
+        # Perform set up
+        self.screens = self.__match_screen_ids(self.config["screens"])
+        
+        self.workspace_templates = {}
+
+        # Create a mapping of the templates
+        for ws_def in self.config["workspaces"]:
+            self.workspace_templates[ws_def["name"]] = ws_def
+
+        return True
+    
+    ##################################
+    # Controller Functions
+    ##################################
+
     def start(self):
         logger.info("Starting controller")
 
         self.file_manager.start()
-
-        self.screens = self.__match_screen_ids(self.screens)
-
+        
         for workspace in self.workspaces:
             workspace.start()
 

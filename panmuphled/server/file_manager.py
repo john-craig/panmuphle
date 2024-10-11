@@ -3,6 +3,10 @@ import os
 import shutil
 import signal
 import psutil
+import time 
+
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 logger = logging.getLogger(__name__)
 
@@ -10,8 +14,11 @@ DEFAULT_STATE_PATH = "/tmp/panmuphled"
 
 
 class FileManager:
-    def __init__(self):
+    def __init__(self, config_path, config_change_callback):
         self.state_dir = DEFAULT_STATE_PATH
+
+        self.config_path = config_path
+        self.config_change_callback = config_change_callback
 
     def start(self):
         logger.info("Starting file manager")
@@ -23,8 +30,19 @@ class FileManager:
         logger.info("Creating state directory")
         os.mkdir(self.state_dir)
 
+        logger.info("Starting configuration file watcher")
+        self.watch_configuration_file()
+
+
     def stop(self):
         logger.info("Stopping file manager")
+        self.observer.stop()
+
+    def watch_configuration_file(self):
+        event_handler = ConfigChangeHandler(self.config_path, self.config_change_callback)
+        self.observer = Observer()
+        self.observer.schedule(event_handler, path=self.config_path, recursive=False)
+        self.observer.start()
 
     def create_application_subdir(self, win_name, app_name):
         app_subdir = os.path.join(self.state_dir, f"{win_name}-{app_name}")
@@ -86,3 +104,15 @@ class FileManager:
 
         logger.info("Removing old state directory")
         shutil.rmtree(self.state_dir)
+
+class ConfigChangeHandler(FileSystemEventHandler):
+    def __init__(self, config_path, config_change_callback):
+        self.config_path = config_path
+        self.config_change_callback = config_change_callback
+
+    def on_modified(self, event):
+        if event.src_path == self.config_path:
+            logger.info(f"{self.config_path} has been modified.")
+
+            self.config_change_callback(self.config_path)
+            
